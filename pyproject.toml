@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "countrywizard"
+version = "0.1.0"
+description = ""
+authors = ["bswck <bswck.dev@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pandas = "^2.0.2"
+
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.0.270"
+mypy = "^1.3.0"
+black = "^23.3.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+target-version = "py39"
+select = ["F","E","W","I","UP","N","S","C","B","A","T","Q","RUF","YTT","BLE","ANN","FBT","PL","TRY","RSE","SLF","DTZ","EXE","ISC","ICN","G","INP","PIE","RET","SIM","TID","TCH","ARG","PTH"]
+ignore = ["DTZ005","INP001","TCH003","ANN101","ANN102","ANN401","I001","TID252","T201","B905","S101","TRY003","PLR2004"]
+fix = true
