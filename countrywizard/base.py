@@ -5,6 +5,7 @@ import functools
 import gc
 import logging
 import operator
+import pathlib
 import shelve
 import sys
 import weakref
@@ -29,7 +30,7 @@ __all__ = (
 
 log = logging.getLogger(__name__)
 
-DEFAULT_PATH: str = "dashboard/src/data/location/normalization/geonamebase.db"
+DEFAULT_PATH: str = "countrywizard.db"
 
 
 class SourceDataset:
@@ -55,13 +56,13 @@ class SourceDataset:
 
     def __init__(
         self,
-        filename: str,
+        path: pathlib.Path,
         *,
         reader: Callable = pd.read_csv,
         iterates: bool = False,
         **options: Any,
     ) -> None:
-        self.filename = filename
+        self.path = path
         self._read = reader
         options.setdefault("usecols", self.usecols)
         self.options = options
@@ -72,7 +73,7 @@ class SourceDataset:
     def _cached_data(self) -> pd.DataFrame | Iterator[pd.DataFrame]:
         """Cached general data property, may store an iterator of chunked data."""
         data = self._read(
-            self.filename,
+            str(self.path),
             encoding=self.encoding,
             names=tuple(self.dtype) if self.dtype else None,
             dtype=self.dtype,
@@ -99,7 +100,7 @@ class SourceDataset:
 
     def push(self, db: shelve.Shelf) -> None:
         """Manages to push the whole data from this dataset to the geoname database."""
-        log.info("Pushing data from %s to the specified shelve file", self.filename)
+        log.info("Pushing data from %s to the specified shelve file", self.path)
 
         try:
             if self.iterates:
@@ -115,7 +116,7 @@ class SourceDataset:
 
         log.info(
             "DONE pushing data from %s to the specified shelve file",
-            self.filename
+            self.path
         )
 
     def push_data(self, db: shelve.Shelf) -> None:
@@ -209,9 +210,9 @@ class Geonames(SourceDataset):
 
     feature_classes_criteria: ClassVar[set[str]] = set("APRT")
 
-    def __init__(self, filename: str, **options: Any) -> None:
+    def __init__(self, path: str, **options: Any) -> None:
         options.setdefault("sep", options.pop("delimiter", "\t"))
-        super().__init__(filename, **options)
+        super().__init__(path, **options)
 
     def alter_data(self, data: pd.DataFrame) -> pd.DataFrame:
         data = data[data.feature_class.isin(self.feature_classes_criteria)]
@@ -282,19 +283,13 @@ class CountryCodes(SourceDataset):
             db[row.alpha2.upper()] = (row.alpha3, FeatureClass.C, None)
 
 
+_cw = pathlib.Path(__file__).parent.joinpath
+
 SOURCE_DATASETS = (
-    CountryAliases(
-        "dashboard/src/data/location/normalization/datasets/countryaliases.csv",
-    ),
-    CountryCodes(
-        "dashboard/src/data/location/normalization/datasets/isocountrycodes.csv",
-    ),
-    Geonames("dashboard/src/data/location/normalization/datasets/cities500.csv"),
-    Geonames(
-        "dashboard/src/data/location/normalization/datasets/allcountries.csv",
-        chunksize=1000,
-        iterates=True,
-    ),
+    CountryAliases(_cw("_data/countryaliases.csv")),
+    CountryCodes(_cw("_data/isocountrycodes.csv")),
+    Geonames(_cw("_data/cities500.csv")),
+    Geonames(_cw("_data/allcountries.csv"), chunksize=1000, iterates=True),
 )
 
 
